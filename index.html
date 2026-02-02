@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>🌺 Hawaii Wedding 🌴</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: none;
+        }
+        
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        
+        #gameContainer {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            background: #87CEEB;
+        }
+        
+        #startScreen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: monospace;
+            z-index: 100;
+        }
+        
+        #startScreen h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        #startScreen p {
+            font-size: 14px;
+            margin-bottom: 30px;
+            text-align: center;
+            padding: 0 20px;
+        }
+        
+        #startBtn {
+            padding: 15px 40px;
+            font-size: 18px;
+            font-family: monospace;
+            background: #ff6b6b;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 10px;
+            z-index: 50;
+        }
+        
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 50px);
+            gap: 5px;
+        }
+        
+        .dpad button {
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            border: none;
+            background: rgba(255,255,255,0.7);
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        
+        .dpad button:active {
+            background: rgba(255,255,255,1);
+        }
+        
+        .empty {
+            visibility: hidden;
+        }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <h1>🌺 Hawaii Wedding 🌴</h1>
+        <p>Steuere den frisch verheirateten Bräutigam am Strand!<br>
+        🎮 Pfeiltasten / Touch-Buttons</p>
+        <button id="startBtn">🎵 Start Game</button>
+    </div>
+    
+    <div id="gameContainer">
+        <canvas id="game"></canvas>
+    </div>
+    
+    <div id="controls">
+        <div class="dpad">
+            <button class="empty"></button>
+            <button id="upBtn">⬆️</button>
+            <button class="empty"></button>
+            <button id="leftBtn">⬅️</button>
+            <button class="empty"></button>
+            <button id="rightBtn">➡️</button>
+            <button class="empty"></button>
+            <button id="downBtn">⬇️</button>
+            <button class="empty"></button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Game dimensions
+        const GAME_WIDTH = 320;
+        const GAME_HEIGHT = 240;
+        const PIXEL_SIZE = 4;
+        
+        // Scale canvas
+        function resizeCanvas() {
+            const scale = Math.min(
+                window.innerWidth / GAME_WIDTH,
+                window.innerHeight / GAME_HEIGHT
+            ) * 0.9;
+            canvas.style.width = (GAME_WIDTH * scale) + 'px';
+            canvas.style.height = (GAME_HEIGHT * scale) + 'px';
+        }
+        
+        canvas.width = GAME_WIDTH;
+        canvas.height = GAME_HEIGHT;
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+        
+        // World bounds
+        const WORLD_WIDTH = 500;
+        const WORLD_HEIGHT = 240;
+        
+        // Camera
+        let cameraX = 0;
+        
+        // Colors
+        const COLORS = {
+            sky: '#87CEEB',
+            skyGradient: '#FFB347',
+            ocean: '#1E90FF',
+            oceanDeep: '#0066CC',
+            sand: '#F4D03F',
+            sandDark: '#D4AC0D',
+            lava: '#FF4500',
+            lavaGlow: '#FF6347',
+            volcano: '#4A4A4A',
+            volcanoLight: '#696969',
+            palm: '#228B22',
+            palmTrunk: '#8B4513',
+            hair: '#FFE135',
+            hairDark: '#5C4033',
+            skin: '#FFDAB9',
+            suit: '#2C3E50',
+            dress: '#FFFFFF',
+            veil: '#FFFFFFCC'
+        };
+        
+        // Player (Groom)
+        const player = {
+            x: 100,
+            y: 160,
+            width: 16,
+            height: 24,
+            speed: 2,
+            frame: 0,
+            facing: 1,
+            moving: false
+        };
+        
+        // Bride
+        const bride = {
+            x: 70,
+            y: 160,
+            width: 16,
+            height: 24,
+            frame: 0,
+            facing: 1
+        };
+        
+        // Ocean creatures
+        const creatures = [];
+        for (let i = 0; i < 5; i++) {
+            creatures.push({
+                x: 150 + Math.random() * 300,
+                y: 200,
+                type: Math.random() > 0.5 ? 'shark' : 'whale',
+                jumpHeight: 0,
+                jumpSpeed: 0,
+                jumping: false,
+                timer: Math.random() * 200
+            });
+        }
+        
+        // Lava particles
+        const lavaParticles = [];
+        
+        // Input
+        const keys = { left: false, right: false, up: false, down: false };
+        
+        // Audio context for Hawaiian music
+        let audioCtx = null;
+        let musicPlaying = false;
+        
+        function createHawaiianMusic() {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Ukulele-like melody
+            const notes = [392, 440, 494, 523, 587, 659, 587, 523, 494, 440];
+            let noteIndex = 0;
+            
+            function playNote() {
+                if (!musicPlaying) return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc.type = 'triangle';
+                osc.frequency.value = notes[noteIndex];
+                
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialDecayTo && gain.gain.exponentialDecayTo(0.01, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.4);
+                
+                noteIndex = (noteIndex + 1) % notes.length;
+                
+                setTimeout(playNote, 400);
+            }
+            
+            // Background "wave" sound
+            const waveOsc = audioCtx.createOscillator();
+            const waveGain = audioCtx.createGain();
+            const waveFilter = audioCtx.createBiquadFilter();
+            
+            waveOsc.type = 'sine';
+            waveOsc.frequency.value = 100;
+            waveFilter.type = 'lowpass';
+            waveFilter.frequency.value = 200;
+            waveGain.gain.value = 0.05;
+            
+            waveOsc.connect(waveFilter);
+            waveFilter.connect(waveGain);
+            waveGain.connect(audioCtx.destination);
+            
+            // Modulate for wave effect
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.value = 0.2;
+            lfoGain.gain.value = 50;
+            lfo.connect(lfoGain);
+            lfoGain.connect(waveOsc.frequency);
+            
+            waveOsc.start();
+            lfo.start();
+            
+            musicPlaying = true;
+            playNote();
+        }
+        
+        // Draw pixel
+        function drawPixel(x, y, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.floor(x - cameraX), Math.floor(y), 1, 1);
+        }
+        
+        // Draw rect
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(Math.floor(x - cameraX), Math.floor(y), w, h);
+        }
+        
+        // Draw character (pixel art style)
+        function drawCharacter(char, isGroom) {
+            const x = Math.floor(char.x - cameraX);
+            const y = Math.floor(char.y);
+            const f = char.facing;
+            
+            if (isGroom) {
+                // Blonde hair
+                ctx.fillStyle = COLORS.hair;
+                ctx.fillRect(x + 4, y, 8, 6);
+                ctx.fillRect(x + 3, y + 2, 10, 3);
+                
+                // Face
+                ctx.fillStyle = COLORS.skin;
+                ctx.fillRect(x + 4, y + 5, 8, 7);
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 5 + (f > 0 ? 1 : 0), y + 7, 2, 2);
+                ctx.fillRect(x + 9 + (f > 0 ? 1 : 0), y + 7, 2, 2);
+                
+                // Smile
+                ctx.fillRect(x + 6, y + 10, 4, 1);
+                
+                // Suit body
+                ctx.fillStyle = COLORS.suit;
+                ctx.fillRect(x + 3, y + 12, 10, 8);
+                
+                // White shirt
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 6, y + 12, 4, 5);
+                
+                // Legs
+                ctx.fillStyle = COLORS.suit;
+                const legOffset = char.moving ? Math.sin(char.frame * 0.3) * 2 : 0;
+                ctx.fillRect(x + 4, y + 20, 3, 4 + legOffset);
+                ctx.fillRect(x + 9, y + 20, 3, 4 - legOffset);
+                
+            } else {
+                // Dark hair with veil
+                ctx.fillStyle = COLORS.hairDark;
+                ctx.fillRect(x + 3, y - 2, 10, 8);
+                ctx.fillRect(x + 2, y + 2, 12, 4);
+                
+                // Veil
+                ctx.fillStyle = COLORS.veil;
+                ctx.fillRect(x + 1, y - 4, 14, 4);
+                ctx.fillRect(x - 2, y, 4, 16);
+                ctx.fillRect(x + 14, y, 4, 16);
+                
+                // Face
+                ctx.fillStyle = COLORS.skin;
+                ctx.fillRect(x + 4, y + 5, 8, 7);
+                
+                // Eyes
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 5, y + 7, 2, 2);
+                ctx.fillRect(x + 9, y + 7, 2, 2);
+                
+                // Blush
+                ctx.fillStyle = '#FFB6C1';
+                ctx.fillRect(x + 3, y + 9, 2, 1);
+                ctx.fillRect(x + 11, y + 9, 2, 1);
+                
+                // Smile
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 6, y + 10, 4, 1);
+                
+                // White dress
+                ctx.fillStyle = COLORS.dress;
+                ctx.fillRect(x + 2, y + 12, 12, 10);
+                ctx.fillRect(x + 0, y + 18, 16, 6);
+                
+                // Dress details
+                ctx.fillStyle = '#EEE';
+                ctx.fillRect(x + 4, y + 14, 2, 6);
+                ctx.fillRect(x + 10, y + 14, 2, 6);
+            }
+        }
+        
+        // Draw shark
+        function drawShark(x, y) {
+            const sx = Math.floor(x - cameraX);
+            const sy = Math.floor(y);
+            
+            ctx.fillStyle = '#708090';
+            // Body
+            ctx.fillRect(sx, sy, 20, 8);
+            ctx.fillRect(sx + 2, sy - 2, 16, 4);
+            ctx.fillRect(sx + 4, sy + 6, 12, 4);
+            
+            // Fin
+            ctx.fillRect(sx + 8, sy - 8, 4, 8);
+            ctx.fillRect(sx + 9, sy - 10, 2, 4);
+            
+            // Tail
+            ctx.fillRect(sx - 4, sy + 2, 6, 4);
+            ctx.fillRect(sx - 6, sy, 4, 8);
+            
+            // Eye
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(sx + 16, sy + 1, 3, 3);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(sx + 17, sy + 2, 2, 2);
+            
+            // Teeth
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(sx + 18, sy + 5, 1, 2);
+            ctx.fillRect(sx + 20, sy + 5, 1, 2);
+        }
+        
+        // Draw whale
+        function drawWhale(x, y) {
+            const wx = Math.floor(x - cameraX);
+            const wy = Math.floor(y);
+            
+            ctx.fillStyle = '#4169E1';
+            // Body
+            ctx.fillRect(wx, wy, 30, 12);
+            ctx.fillRect(wx + 4, wy - 3, 22, 6);
+            ctx.fillRect(wx + 4, wy + 10, 22, 4);
+            
+            // Belly
+            ctx.fillStyle = '#ADD8E6';
+            ctx.fillRect(wx + 6, wy + 8, 18, 4);
+            
+            // Tail
+            ctx.fillStyle = '#4169E1';
+            ctx.fillRect(wx - 8, wy + 2, 10, 8);
+            ctx.fillRect(wx - 14, wy - 2, 8, 6);
+            ctx.fillRect(wx - 14, wy + 8, 8, 6);
+            
+            // Eye
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(wx + 24, wy + 2, 4, 4);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(wx + 25, wy + 3, 2, 2);
+            
+            // Spout
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(wx + 12, wy - 10, 2, 8);
+            ctx.fillRect(wx + 8, wy - 14, 10, 4);
+        }
+        
+        // Draw palm tree
+        function drawPalm(x, y) {
+            const px = Math.floor(x - cameraX);
+            
+            // Trunk
+            ctx.fillStyle = COLORS.palmTrunk;
+            ctx.fillRect(px + 6, y, 4, 40);
+            ctx.fillRect(px + 5, y + 10, 6, 4);
+            ctx.fillRect(px + 5, y + 20, 6, 4);
+            ctx.fillRect(px + 5, y + 30, 6, 4);
+            
+            // Leaves
+            ctx.fillStyle = COLORS.palm;
+            // Left leaves
+            ctx.fillRect(px - 15, y - 5, 20, 4);
+            ctx.fillRect(px - 20, y - 2, 15, 3);
+            ctx.fillRect(px - 18, y + 2, 12, 3);
+            
+            // Right leaves
+            ctx.fillRect(px + 10, y - 5, 20, 4);
+            ctx.fillRect(px + 15, y - 2, 20, 3);
+            ctx.fillRect(px + 18, y + 2, 15, 3);
+            
+            // Top leaves
+            ctx.fillRect(px + 2, y - 12, 12, 4);
+            ctx.fillRect(px, y - 8, 16, 4);
+        }
+        
+        // Draw volcano
+        function drawVolcano() {
+            const vx = WORLD_WIDTH - 120 - cameraX;
+            
+            // Mountain
+            ctx.fillStyle = COLORS.volcano;
+            ctx.beginPath();
+            ctx.moveTo(vx, 180);
+            ctx.lineTo(vx + 60, 40);
+            ctx.lineTo(vx + 120, 180);
+            ctx.fill();
+            
+            // Lighter side
+            ctx.fillStyle = COLORS.volcanoLight;
+            ctx.beginPath();
+            ctx.moveTo(vx + 60, 40);
+            ctx.lineTo(vx + 120, 180);
+            ctx.lineTo(vx + 80, 180);
+            ctx.lineTo(vx + 60, 80);
+            ctx.fill();
+            
+            // Crater
+            ctx.fillStyle = '#2C2C2C';
+            ctx.fillRect(vx + 45, 40, 30, 15);
+            
+            // Lava glow
+            ctx.fillStyle = COLORS.lavaGlow;
+            ctx.fillRect(vx + 48, 42, 24, 10);
+            
+            // Lava in crater
+            ctx.fillStyle = COLORS.lava;
+            ctx.fillRect(vx + 50, 45, 20, 8);
+            
+            // Lava streams
+            ctx.fillStyle = COLORS.lava;
+            ctx.fillRect(vx + 55, 52, 4, 30);
+            ctx.fillRect(vx + 62, 52, 3, 45);
+            ctx.fillRect(vx + 68, 52, 4, 25);
+            
+            ctx.fillStyle = COLORS.lavaGlow;
+            ctx.fillRect(vx + 56, 52, 2, 30);
+            ctx.fillRect(vx + 63, 52, 1, 45);
+            ctx.fillRect(vx + 69, 52, 2, 25);
+        }
+        
+        // Add lava particle
+        function spawnLavaParticle() {
+            if (Math.random() > 0.1) return;
+            lavaParticles.push({
+                x: WORLD_WIDTH - 60 + Math.random() * 20,
+                y: 45,
+                vx: (Math.random() - 0.5) * 2,
+                vy: -Math.random() * 3 - 1,
+                life: 60
+            });
+        }
+        
+        // Update
+        function update() {
+            // Move player
+            player.moving = false;
+            
+            if (keys.left && player.x > 30) {
+                player.x -= player.speed;
+                player.facing = -1;
+                player.moving = true;
+            }
+            if (keys.right && player.x < WORLD_WIDTH - 50) {
+                player.x += player.speed;
+                player.facing = 1;
+                player.moving = true;
+            }
+            if (keys.up && player.y > 140) {
+                player.y -= player.speed;
+                player.moving = true;
+            }
+            if (keys.down && player.y < 175) {
+                player.y += player.speed;
+                player.moving = true;
+            }
+            
+            if (player.moving) {
+                player.frame++;
+            }
+            
+            // Camera follow
+            const targetCam = player.x - GAME_WIDTH / 2 + player.width / 2;
+            cameraX = Math.max(0, Math.min(WORLD_WIDTH - GAME_WIDTH, targetCam));
+            
+            // Bride follows player
+            const dx = player.x - 30 - bride.x;
+            const dy = player.y - bride.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 5) {
+                bride.x += (dx / dist) * 1.5;
+                bride.y += (dy / dist) * 1.5;
+                bride.facing = dx > 0 ? 1 : -1;
+                bride.frame++;
+            }
+            
+            // Update creatures
+            creatures.forEach(c => {
+                c.timer--;
+                if (c.timer <= 0 && !c.jumping) {
+                    c.jumping = true;
+                    c.jumpSpeed = -4 - Math.random() * 2;
+                }
+                
+                if (c.jumping) {
+                    c.jumpHeight += c.jumpSpeed;
+                    c.jumpSpeed += 0.15;
+                    
+                    if (c.jumpHeight >= 0) {
+                        c.jumpHeight = 0;
+                        c.jumping = false;
+                        c.timer = 100 + Math.random() * 200;
+                    }
+                }
+            });
+            
+            // Lava particles
+            spawnLavaParticle();
+            lavaParticles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.1;
+                p.life--;
+                if (p.life <= 0) {
+                    lavaParticles.splice(i, 1);
+                }
+            });
+        }
+        
+        // Draw
+        function draw() {
+            // Sky gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+            gradient.addColorStop(0, COLORS.sky);
+            gradient.addColorStop(0.6, COLORS.skyGradient);
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            
+            // Sun
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(GAME_WIDTH - 50, 40, 25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#FFF8DC';
+            ctx.beginPath();
+            ctx.arc(GAME_WIDTH - 50, 40, 20, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Volcano (background)
+            drawVolcano();
+            
+            // Lava particles
+            lavaParticles.forEach(p => {
+                ctx.fillStyle = Math.random() > 0.5 ? COLORS.lava : COLORS.lavaGlow;
+                ctx.fillRect(Math.floor(p.x - cameraX), Math.floor(p.y), 3, 3);
+            });
+            
+            // Ocean
+            ctx.fillStyle = COLORS.ocean;
+            ctx.fillRect(0, 195, GAME_WIDTH, 50);
+            
+            // Ocean waves
+            for (let i = 0; i < GAME_WIDTH; i += 8) {
+                const waveY = 195 + Math.sin((i + Date.now() * 0.002) * 0.1) * 3;
+                ctx.fillStyle = COLORS.oceanDeep;
+                ctx.fillRect(i, waveY + 5, 8, 40);
+            }
+            
+            // Draw creatures
+            creatures.forEach(c => {
+                const drawY = 200 + c.jumpHeight;
+                if (c.type === 'shark') {
+                    drawShark(c.x, drawY);
+                } else {
+                    drawWhale(c.x, drawY - 5);
+                }
+            });
+            
+            // Beach/sand
+            ctx.fillStyle = COLORS.sand;
+            ctx.fillRect(0, 180, GAME_WIDTH, 20);
+            
+            // Sand texture
+            ctx.fillStyle = COLORS.sandDark;
+            for (let i = 0; i < GAME_WIDTH; i += 12) {
+                ctx.fillRect(i + ((cameraX * 0.5) % 12), 185, 4, 2);
+                ctx.fillRect(i + 6 + ((cameraX * 0.5) % 12), 190, 3, 2);
+            }
+            
+            // Palm trees
+            drawPalm(50, 140);
+            drawPalm(200, 145);
+            drawPalm(350, 140);
+            
+            // Characters
+            drawCharacter(bride, false);
+            drawCharacter(player, true);
+            
+            // Hearts floating
+            const heartY = 120 + Math.sin(Date.now() * 0.003) * 5;
+            ctx.fillStyle = '#FF69B4';
+            ctx.font = '12px sans-serif';
+            ctx.fillText('❤️', player.x - cameraX + 3, heartY);
+        }
+        
+        // Game loop
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Input handlers
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = true;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
+            if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
+            if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'ArrowLeft' || e.key === 'a') keys.left = false;
+            if (e.key === 'ArrowRight' || e.key === 'd') keys.right = false;
+            if (e.key === 'ArrowUp' || e.key === 'w') keys.up = false;
+            if (e.key === 'ArrowDown' || e.key === 's') keys.down = false;
+        });
+        
+        // Touch controls
+        function setupTouchButton(id, key) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[key] = true;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[key] = false;
+            });
+            btn.addEventListener('mousedown', () => keys[key] = true);
+            btn.addEventListener('mouseup', () => keys[key] = false);
+            btn.addEventListener('mouseleave', () => keys[key] = false);
+        }
+        
+        setupTouchButton('upBtn', 'up');
+        setupTouchButton('downBtn', 'down');
+        setupTouchButton('leftBtn', 'left');
+        setupTouchButton('rightBtn', 'right');
+        
+        // Start game
+        document.getElementById('startBtn').addEventListener('click', () => {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('controls').style.display = 'flex';
+            createHawaiianMusic();
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
