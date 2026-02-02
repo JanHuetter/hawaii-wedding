@@ -260,7 +260,7 @@
         window.addEventListener('resize', resizeCanvas);
         
         // World bounds
-        const WORLD_WIDTH = 600;
+        const WORLD_WIDTH = 800;
         const WORLD_HEIGHT = 240;
         
         // Camera
@@ -1025,7 +1025,7 @@
         
         // Draw volcano
         function drawVolcano() {
-            const vx = WORLD_WIDTH - 140 - cameraX;
+            const vx = 300 - cameraX;
             
             // Mountain base
             ctx.fillStyle = '#3D3D3D';
@@ -1086,7 +1086,7 @@
         function spawnLavaParticle() {
             if (Math.random() > 0.15) return;
             lavaParticles.push({
-                x: WORLD_WIDTH - 70 + Math.random() * 20,
+                x: 340 + Math.random() * 20,
                 y: 35,
                 vx: (Math.random() - 0.5) * 3,
                 vy: -Math.random() * 4 - 2,
@@ -1105,15 +1105,25 @@
             // Move player
             player.moving = false;
             
-            if (keys.left && player.x > 30) {
+            if (keys.left) {
                 player.x -= player.speed;
                 player.facing = -1;
                 player.moving = true;
+                // Wrap around
+                if (player.x < 0) {
+                    player.x = WORLD_WIDTH - 20;
+                    bride.x = player.x - 35;
+                }
             }
-            if (keys.right && player.x < WORLD_WIDTH - 50) {
+            if (keys.right) {
                 player.x += player.speed;
                 player.facing = 1;
                 player.moving = true;
+                // Wrap around
+                if (player.x > WORLD_WIDTH - 20) {
+                    player.x = 0;
+                    bride.x = player.x - 35;
+                }
             }
             if (keys.up && player.y > 140) {
                 player.y -= player.speed;
