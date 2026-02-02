@@ -337,14 +337,26 @@
         let audioCtx = null;
         let musicPlaying = false;
         let masterGain = null;
+        let bgMusic = null;
         
         function createHawaiianMusic() {
+            // Play real Hawaiian ukulele music
+            bgMusic = new Audio('hawaii-music.mp3');
+            bgMusic.loop = true;
+            bgMusic.volume = 0.5;
+            bgMusic.play().catch(e => console.log('Audio autoplay blocked'));
+            
+            // Still need audioCtx for sound effects
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioCtx.createGain();
             masterGain.gain.value = 0.35;
             masterGain.connect(audioCtx.destination);
             
-            // White Lotus main melody (marimba-style)
+            musicPlaying = true;
+        }
+        
+        function oldCreateHawaiianMusic_disabled() {
+            // Old synthesized music (kept for reference)
             // The iconic descending/ascending tropical pattern
             const melodyNotes = [
                 // Main theme phrase 1
@@ -593,11 +605,12 @@
             lfo.start();
             
             musicPlaying = true;
-            playMelody();
-            setTimeout(playBass, 200);
-            setTimeout(playShaker, 100);
-            setTimeout(playConga, 400);
-            setTimeout(playPad, 1000);
+            // Old synth music disabled - using MP3 now
+            // playMelody();
+            // setTimeout(playBass, 200);
+            // setTimeout(playShaker, 100);
+            // setTimeout(playConga, 400);
+            // setTimeout(playPad, 1000);
         }
         
         function playCollectSound() {
