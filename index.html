@@ -333,7 +333,7 @@
         // Lava particles
         const lavaParticles = [];
         
-        // Audio context for Hawaiian music
+        // Audio context for White Lotus theme
         let audioCtx = null;
         let musicPlaying = false;
         let masterGain = null;
@@ -341,49 +341,77 @@
         function createHawaiianMusic() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             masterGain = audioCtx.createGain();
-            masterGain.gain.value = 0.3;
+            masterGain.gain.value = 0.35;
             masterGain.connect(audioCtx.destination);
             
-            // Ukulele melody
-            const ukuleleNotes = [
-                {note: 392, dur: 0.3}, {note: 440, dur: 0.3}, {note: 494, dur: 0.3}, {note: 523, dur: 0.6},
-                {note: 494, dur: 0.3}, {note: 440, dur: 0.3}, {note: 392, dur: 0.6},
-                {note: 330, dur: 0.3}, {note: 392, dur: 0.3}, {note: 440, dur: 0.6},
-                {note: 392, dur: 0.3}, {note: 330, dur: 0.3}, {note: 294, dur: 0.6}
+            // White Lotus main melody (marimba-style)
+            // The iconic descending/ascending tropical pattern
+            const melodyNotes = [
+                // Main theme phrase 1
+                {note: 784, dur: 0.2},   // G5
+                {note: 659, dur: 0.2},   // E5
+                {note: 587, dur: 0.2},   // D5
+                {note: 523, dur: 0.4},   // C5
+                {note: 0, dur: 0.2},     // rest
+                {note: 784, dur: 0.2},   // G5
+                {note: 659, dur: 0.2},   // E5
+                {note: 587, dur: 0.2},   // D5
+                {note: 494, dur: 0.4},   // B4
+                {note: 0, dur: 0.2},     // rest
+                // Phrase 2
+                {note: 659, dur: 0.2},   // E5
+                {note: 587, dur: 0.2},   // D5
+                {note: 523, dur: 0.2},   // C5
+                {note: 494, dur: 0.2},   // B4
+                {note: 440, dur: 0.4},   // A4
+                {note: 0, dur: 0.2},     // rest
+                {note: 523, dur: 0.2},   // C5
+                {note: 587, dur: 0.2},   // D5
+                {note: 659, dur: 0.4},   // E5
+                {note: 0, dur: 0.4},     // rest
             ];
-            let ukeIndex = 0;
+            let melodyIndex = 0;
             
-            function playUkulele() {
-                if (!musicPlaying) return;
+            function playMarimba(freq, duration) {
+                if (freq === 0) return; // rest
                 
-                const osc = audioCtx.createOscillator();
+                // Marimba sound: sine + triangle with fast decay
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                const filter = audioCtx.createBiquadFilter();
                 
-                filter.type = 'bandpass';
-                filter.frequency.value = 1500;
-                filter.Q.value = 1;
+                osc1.type = 'sine';
+                osc2.type = 'triangle';
+                osc1.frequency.value = freq;
+                osc2.frequency.value = freq * 2; // octave up for brightness
                 
-                osc.connect(filter);
-                filter.connect(gain);
+                osc1.connect(gain);
+                osc2.connect(gain);
                 gain.connect(masterGain);
                 
-                osc.type = 'triangle';
-                const noteData = ukuleleNotes[ukeIndex];
-                osc.frequency.value = noteData.note;
+                // Sharp attack, medium decay (marimba character)
+                gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.15, audioCtx.currentTime + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration * 0.9);
                 
-                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + noteData.dur * 0.9);
-                
-                osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + noteData.dur);
-                
-                ukeIndex = (ukeIndex + 1) % ukuleleNotes.length;
-                setTimeout(playUkulele, noteData.dur * 1000);
+                osc1.start(audioCtx.currentTime);
+                osc2.start(audioCtx.currentTime);
+                osc1.stop(audioCtx.currentTime + duration);
+                osc2.stop(audioCtx.currentTime + duration);
             }
             
-            // Bass line
-            const bassNotes = [196, 196, 220, 220, 165, 165, 147, 147];
+            function playMelody() {
+                if (!musicPlaying) return;
+                
+                const noteData = melodyNotes[melodyIndex];
+                playMarimba(noteData.note, noteData.dur);
+                
+                melodyIndex = (melodyIndex + 1) % melodyNotes.length;
+                setTimeout(playMelody, noteData.dur * 1000);
+            }
+            
+            // Deep bass drone (mysterious undertone)
+            const bassNotes = [131, 131, 147, 147, 131, 131, 110, 110]; // C3, D3, C3, A2
             let bassIndex = 0;
             
             function playBass() {
@@ -394,7 +422,7 @@
                 const filter = audioCtx.createBiquadFilter();
                 
                 filter.type = 'lowpass';
-                filter.frequency.value = 300;
+                filter.frequency.value = 200;
                 
                 osc.connect(filter);
                 filter.connect(gain);
@@ -403,104 +431,136 @@
                 osc.type = 'sine';
                 osc.frequency.value = bassNotes[bassIndex];
                 
-                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
                 
                 osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + 0.6);
+                osc.stop(audioCtx.currentTime + 0.9);
                 
                 bassIndex = (bassIndex + 1) % bassNotes.length;
-                setTimeout(playBass, 600);
+                setTimeout(playBass, 800);
             }
             
-            // Drums (bongo style)
-            function playDrums() {
+            // Shaker/percussion rhythm (White Lotus style)
+            let shakerBeat = 0;
+            
+            function playShaker() {
                 if (!musicPlaying) return;
                 
-                // Kick
-                const kick = audioCtx.createOscillator();
-                const kickGain = audioCtx.createGain();
-                kick.connect(kickGain);
-                kickGain.connect(masterGain);
-                kick.frequency.setValueAtTime(150, audioCtx.currentTime);
-                kick.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
-                kickGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-                kickGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-                kick.start(audioCtx.currentTime);
-                kick.stop(audioCtx.currentTime + 0.1);
+                // Create noise burst for shaker
+                const bufferSize = audioCtx.sampleRate * 0.05;
+                const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
                 
-                // Hi sound (bongo high)
+                const noise = audioCtx.createBufferSource();
+                noise.buffer = buffer;
+                
+                const filter = audioCtx.createBiquadFilter();
+                filter.type = 'highpass';
+                filter.frequency.value = 7000;
+                
+                const gain = audioCtx.createGain();
+                const volume = shakerBeat % 4 === 0 ? 0.15 : 0.08;
+                gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                
+                noise.start(audioCtx.currentTime);
+                
+                shakerBeat++;
+                setTimeout(playShaker, 200);
+            }
+            
+            // Conga/tom rhythm
+            function playConga() {
+                if (!musicPlaying) return;
+                
+                // Low tom
+                const tom = audioCtx.createOscillator();
+                const tomGain = audioCtx.createGain();
+                tom.connect(tomGain);
+                tomGain.connect(masterGain);
+                tom.frequency.setValueAtTime(180, audioCtx.currentTime);
+                tom.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.15);
+                tomGain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                tomGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+                tom.start(audioCtx.currentTime);
+                tom.stop(audioCtx.currentTime + 0.15);
+                
+                // High conga at offset
                 setTimeout(() => {
                     if (!musicPlaying) return;
                     const hi = audioCtx.createOscillator();
                     const hiGain = audioCtx.createGain();
                     hi.connect(hiGain);
                     hiGain.connect(masterGain);
-                    hi.frequency.setValueAtTime(400, audioCtx.currentTime);
-                    hi.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+                    hi.frequency.setValueAtTime(350, audioCtx.currentTime);
+                    hi.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.08);
                     hiGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-                    hiGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                    hiGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
                     hi.start(audioCtx.currentTime);
-                    hi.stop(audioCtx.currentTime + 0.05);
-                }, 150);
+                    hi.stop(audioCtx.currentTime + 0.08);
+                }, 400);
                 
-                // Another hi
+                // Another hit
                 setTimeout(() => {
                     if (!musicPlaying) return;
-                    const hi2 = audioCtx.createOscillator();
-                    const hi2Gain = audioCtx.createGain();
-                    hi2.connect(hi2Gain);
-                    hi2Gain.connect(masterGain);
-                    hi2.frequency.setValueAtTime(350, audioCtx.currentTime);
-                    hi2.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.05);
-                    hi2Gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                    hi2Gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
-                    hi2.start(audioCtx.currentTime);
-                    hi2.stop(audioCtx.currentTime + 0.05);
-                }, 300);
+                    const mid = audioCtx.createOscillator();
+                    const midGain = audioCtx.createGain();
+                    mid.connect(midGain);
+                    midGain.connect(masterGain);
+                    mid.frequency.setValueAtTime(280, audioCtx.currentTime);
+                    mid.frequency.exponentialRampToValueAtTime(140, audioCtx.currentTime + 0.1);
+                    midGain.gain.setValueAtTime(0.18, audioCtx.currentTime);
+                    midGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                    mid.start(audioCtx.currentTime);
+                    mid.stop(audioCtx.currentTime + 0.1);
+                }, 600);
                 
-                setTimeout(playDrums, 600);
+                setTimeout(playConga, 800);
             }
             
-            // Steel guitar (slide notes)
-            const steelNotes = [523, 587, 659, 587, 523, 494];
-            let steelIndex = 0;
-            
-            function playSteelGuitar() {
+            // Atmospheric pad (mysterious vibe)
+            function playPad() {
                 if (!musicPlaying) return;
                 
-                const osc = audioCtx.createOscillator();
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
-                const vibrato = audioCtx.createOscillator();
-                const vibratoGain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
                 
-                vibrato.frequency.value = 5;
-                vibratoGain.gain.value = 8;
-                vibrato.connect(vibratoGain);
-                vibratoGain.connect(osc.frequency);
+                osc1.type = 'sine';
+                osc2.type = 'sine';
+                osc1.frequency.value = 262; // C4
+                osc2.frequency.value = 330; // E4 (minor third up for mysterious feel)
                 
-                osc.connect(gain);
+                filter.type = 'lowpass';
+                filter.frequency.value = 800;
+                
+                osc1.connect(filter);
+                osc2.connect(filter);
+                filter.connect(gain);
                 gain.connect(masterGain);
                 
-                osc.type = 'sine';
-                const targetNote = steelNotes[steelIndex];
-                osc.frequency.setValueAtTime(targetNote * 0.95, audioCtx.currentTime);
-                osc.frequency.linearRampToValueAtTime(targetNote, audioCtx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.08, audioCtx.currentTime + 2);
+                gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 4);
                 
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.8);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+                osc1.start(audioCtx.currentTime);
+                osc2.start(audioCtx.currentTime);
+                osc1.stop(audioCtx.currentTime + 4);
+                osc2.stop(audioCtx.currentTime + 4);
                 
-                osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + 1.2);
-                vibrato.start(audioCtx.currentTime);
-                vibrato.stop(audioCtx.currentTime + 1.2);
-                
-                steelIndex = (steelIndex + 1) % steelNotes.length;
-                setTimeout(playSteelGuitar, 2400);
+                setTimeout(playPad, 4000);
             }
             
-            // Ocean ambience
+            // Subtle ocean ambience
             const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
             const noiseData = noiseBuffer.getChannelData(0);
             for (let i = 0; i < noiseData.length; i++) {
@@ -513,10 +573,10 @@
             
             const noiseFilter = audioCtx.createBiquadFilter();
             noiseFilter.type = 'lowpass';
-            noiseFilter.frequency.value = 400;
+            noiseFilter.frequency.value = 300;
             
             const noiseGain = audioCtx.createGain();
-            noiseGain.gain.value = 0.05;
+            noiseGain.gain.value = 0.03;
             
             noise.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
@@ -526,17 +586,18 @@
             // LFO for wave movement
             const lfo = audioCtx.createOscillator();
             const lfoGain = audioCtx.createGain();
-            lfo.frequency.value = 0.15;
-            lfoGain.gain.value = 100;
+            lfo.frequency.value = 0.1;
+            lfoGain.gain.value = 80;
             lfo.connect(lfoGain);
             lfoGain.connect(noiseFilter.frequency);
             lfo.start();
             
             musicPlaying = true;
-            playUkulele();
-            setTimeout(playBass, 100);
-            setTimeout(playDrums, 200);
-            setTimeout(playSteelGuitar, 1200);
+            playMelody();
+            setTimeout(playBass, 200);
+            setTimeout(playShaker, 100);
+            setTimeout(playConga, 400);
+            setTimeout(playPad, 1000);
         }
         
         function playCollectSound() {
