@@ -1,15 +1,20 @@
 <!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🌺 Hawaii Wedding 🌴</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>🌺 Hawaii Wedding - Micha & Clair 🌴</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
             touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         html, body {
@@ -17,6 +22,9 @@
             height: 100%;
             overflow: hidden;
             background: #1a1a2e;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
         
         #gameContainer {
@@ -25,100 +33,194 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            position: relative;
         }
         
         canvas {
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            background: #87CEEB;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
         }
         
-        #startScreen {
+        #startScreen, #winScreen {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.8);
+            background: linear-gradient(135deg, rgba(102,126,234,0.95) 0%, rgba(118,75,162,0.95) 100%);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             color: white;
-            font-family: monospace;
+            font-family: 'Georgia', serif;
             z-index: 100;
+            padding: 20px;
         }
         
-        #startScreen h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
+        #winScreen {
+            display: none;
+            background: linear-gradient(135deg, rgba(255,107,107,0.95) 0%, rgba(255,142,83,0.95) 100%);
+        }
+        
+        #startScreen h1, #winScreen h1 {
+            font-size: clamp(24px, 6vw, 48px);
+            margin-bottom: 10px;
             text-align: center;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
         }
         
-        #startScreen p {
-            font-size: 14px;
+        #startScreen h2 {
+            font-size: clamp(18px, 4vw, 32px);
             margin-bottom: 30px;
-            text-align: center;
-            padding: 0 20px;
+            font-weight: normal;
+            opacity: 0.9;
         }
         
-        #startBtn {
-            padding: 15px 40px;
-            font-size: 18px;
-            font-family: monospace;
-            background: #ff6b6b;
+        #winScreen h1 {
+            font-size: clamp(28px, 7vw, 56px);
+            animation: pulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        #winScreen p {
+            font-size: clamp(16px, 4vw, 24px);
+            margin-top: 20px;
+            opacity: 0.9;
+        }
+        
+        .subtitle {
+            font-size: clamp(14px, 3vw, 18px);
+            margin-bottom: 40px;
+            text-align: center;
+            opacity: 0.8;
+            line-height: 1.6;
+        }
+        
+        .btn {
+            padding: 18px 50px;
+            font-size: clamp(16px, 4vw, 22px);
+            font-family: 'Georgia', serif;
             border: none;
-            color: white;
+            border-radius: 50px;
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #333;
             cursor: pointer;
-            border-radius: 5px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .btn:hover, .btn:active {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.4);
+        }
+        
+        #hud {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            right: 10px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 50;
+            font-family: 'Georgia', serif;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: clamp(16px, 4vw, 24px);
+            padding: 10px;
+            background: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 100%);
+            border-radius: 10px;
         }
         
         #controls {
             position: fixed;
-            bottom: 20px;
+            bottom: max(20px, env(safe-area-inset-bottom));
             left: 50%;
             transform: translateX(-50%);
             display: none;
-            gap: 10px;
             z-index: 50;
         }
         
         .dpad {
             display: grid;
-            grid-template-columns: repeat(3, 50px);
-            grid-template-rows: repeat(3, 50px);
+            grid-template-columns: repeat(3, clamp(45px, 12vw, 60px));
+            grid-template-rows: repeat(3, clamp(45px, 12vw, 60px));
             gap: 5px;
         }
         
         .dpad button {
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
+            width: 100%;
+            height: 100%;
+            font-size: clamp(20px, 5vw, 28px);
             border: none;
-            background: rgba(255,255,255,0.7);
-            border-radius: 10px;
+            background: rgba(255,255,255,0.8);
+            border-radius: 12px;
             cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         .dpad button:active {
             background: rgba(255,255,255,1);
+            transform: scale(0.95);
         }
         
         .empty {
             visibility: hidden;
+        }
+        
+        .hearts {
+            position: absolute;
+            font-size: clamp(30px, 8vw, 50px);
+            animation: floatHeart 3s ease-in-out infinite;
+            pointer-events: none;
+        }
+        
+        @keyframes floatHeart {
+            0%, 100% { transform: translateY(0) rotate(-5deg); opacity: 0.8; }
+            50% { transform: translateY(-20px) rotate(5deg); opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div id="startScreen">
         <h1>🌺 Hawaii Wedding 🌴</h1>
-        <p>Steuere den frisch verheirateten Bräutigam am Strand!<br>
-        🎮 Pfeiltasten / Touch-Buttons</p>
-        <button id="startBtn">🎵 Start Game</button>
+        <h2>Micha & Clair</h2>
+        <p class="subtitle">
+            Guide the newlyweds along the beach!<br>
+            🍌 Collect 10 bananas to celebrate! 🍌
+        </p>
+        <button class="btn" id="startBtn">🎵 Start Game</button>
+    </div>
+    
+    <div id="winScreen">
+        <h1>🎉 Congratulations<br>Micha & Clair! 🎉</h1>
+        <p>💒 Wishing you a lifetime of love & happiness! 💕</p>
+        <div class="hearts" style="top: 10%; left: 10%;">💕</div>
+        <div class="hearts" style="top: 20%; right: 15%; animation-delay: 0.5s;">💖</div>
+        <div class="hearts" style="bottom: 25%; left: 20%; animation-delay: 1s;">💗</div>
+        <div class="hearts" style="bottom: 30%; right: 10%; animation-delay: 1.5s;">💝</div>
+        <button class="btn" id="restartBtn" style="margin-top: 40px;">🌺 Play Again</button>
     </div>
     
     <div id="gameContainer">
         <canvas id="game"></canvas>
+    </div>
+    
+    <div id="hud">
+        <span id="bananaCount">🍌 0 / 10</span>
+        <span id="loveText">💕</span>
     </div>
     
     <div id="controls">
@@ -142,14 +244,12 @@
         // Game dimensions
         const GAME_WIDTH = 320;
         const GAME_HEIGHT = 240;
-        const PIXEL_SIZE = 4;
         
-        // Scale canvas
+        // Scale canvas to fill screen
         function resizeCanvas() {
-            const scale = Math.min(
-                window.innerWidth / GAME_WIDTH,
-                window.innerHeight / GAME_HEIGHT
-            ) * 0.9;
+            const scaleX = window.innerWidth / GAME_WIDTH;
+            const scaleY = window.innerHeight / GAME_HEIGHT;
+            const scale = Math.max(scaleX, scaleY);
             canvas.style.width = (GAME_WIDTH * scale) + 'px';
             canvas.style.height = (GAME_HEIGHT * scale) + 'px';
         }
@@ -160,47 +260,50 @@
         window.addEventListener('resize', resizeCanvas);
         
         // World bounds
-        const WORLD_WIDTH = 500;
+        const WORLD_WIDTH = 600;
         const WORLD_HEIGHT = 240;
         
         // Camera
         let cameraX = 0;
         
-        // Colors
-        const COLORS = {
-            sky: '#87CEEB',
-            skyGradient: '#FFB347',
-            ocean: '#1E90FF',
-            oceanDeep: '#0066CC',
-            sand: '#F4D03F',
-            sandDark: '#D4AC0D',
-            lava: '#FF4500',
-            lavaGlow: '#FF6347',
-            volcano: '#4A4A4A',
-            volcanoLight: '#696969',
-            palm: '#228B22',
-            palmTrunk: '#8B4513',
-            hair: '#FFE135',
-            hairDark: '#5C4033',
-            skin: '#FFDAB9',
-            suit: '#2C3E50',
-            dress: '#FFFFFF',
-            veil: '#FFFFFFCC'
-        };
+        // Game state
+        let bananaScore = 0;
+        let gameWon = false;
+        let gameRunning = false;
         
-        // Player (Groom)
+        // Bananas
+        let bananas = [];
+        function spawnBananas() {
+            bananas = [];
+            const positions = [
+                {x: 80, y: 165}, {x: 150, y: 155}, {x: 220, y: 168},
+                {x: 280, y: 150}, {x: 340, y: 165}, {x: 400, y: 158},
+                {x: 450, y: 170}, {x: 180, y: 170}, {x: 320, y: 172},
+                {x: 500, y: 160}
+            ];
+            positions.forEach((pos, i) => {
+                bananas.push({
+                    x: pos.x,
+                    y: pos.y,
+                    collected: false,
+                    bobOffset: Math.random() * Math.PI * 2
+                });
+            });
+        }
+        
+        // Player (Groom - Micha)
         const player = {
             x: 100,
             y: 160,
             width: 16,
             height: 24,
-            speed: 2,
+            speed: 2.5,
             frame: 0,
             facing: 1,
             moving: false
         };
         
-        // Bride
+        // Bride (Clair)
         const bride = {
             x: 70,
             y: 160,
@@ -212,180 +315,510 @@
         
         // Ocean creatures
         const creatures = [];
-        for (let i = 0; i < 5; i++) {
-            creatures.push({
-                x: 150 + Math.random() * 300,
-                y: 200,
-                type: Math.random() > 0.5 ? 'shark' : 'whale',
-                jumpHeight: 0,
-                jumpSpeed: 0,
-                jumping: false,
-                timer: Math.random() * 200
-            });
+        function spawnCreatures() {
+            creatures.length = 0;
+            for (let i = 0; i < 6; i++) {
+                creatures.push({
+                    x: 100 + Math.random() * 450,
+                    y: 200,
+                    type: Math.random() > 0.4 ? 'shark' : 'whale',
+                    jumpHeight: 0,
+                    jumpSpeed: 0,
+                    jumping: false,
+                    timer: Math.random() * 150
+                });
+            }
         }
         
         // Lava particles
         const lavaParticles = [];
         
-        // Input
-        const keys = { left: false, right: false, up: false, down: false };
-        
         // Audio context for Hawaiian music
         let audioCtx = null;
         let musicPlaying = false;
+        let masterGain = null;
         
         function createHawaiianMusic() {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            masterGain = audioCtx.createGain();
+            masterGain.gain.value = 0.3;
+            masterGain.connect(audioCtx.destination);
             
-            // Ukulele-like melody
-            const notes = [392, 440, 494, 523, 587, 659, 587, 523, 494, 440];
-            let noteIndex = 0;
+            // Ukulele melody
+            const ukuleleNotes = [
+                {note: 392, dur: 0.3}, {note: 440, dur: 0.3}, {note: 494, dur: 0.3}, {note: 523, dur: 0.6},
+                {note: 494, dur: 0.3}, {note: 440, dur: 0.3}, {note: 392, dur: 0.6},
+                {note: 330, dur: 0.3}, {note: 392, dur: 0.3}, {note: 440, dur: 0.6},
+                {note: 392, dur: 0.3}, {note: 330, dur: 0.3}, {note: 294, dur: 0.6}
+            ];
+            let ukeIndex = 0;
             
-            function playNote() {
+            function playUkulele() {
                 if (!musicPlaying) return;
                 
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
                 
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
+                filter.type = 'bandpass';
+                filter.frequency.value = 1500;
+                filter.Q.value = 1;
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
                 
                 osc.type = 'triangle';
-                osc.frequency.value = notes[noteIndex];
+                const noteData = ukuleleNotes[ukeIndex];
+                osc.frequency.value = noteData.note;
                 
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.exponentialDecayTo && gain.gain.exponentialDecayTo(0.01, audioCtx.currentTime + 0.4);
-                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + noteData.dur * 0.9);
                 
                 osc.start(audioCtx.currentTime);
-                osc.stop(audioCtx.currentTime + 0.4);
+                osc.stop(audioCtx.currentTime + noteData.dur);
                 
-                noteIndex = (noteIndex + 1) % notes.length;
-                
-                setTimeout(playNote, 400);
+                ukeIndex = (ukeIndex + 1) % ukuleleNotes.length;
+                setTimeout(playUkulele, noteData.dur * 1000);
             }
             
-            // Background "wave" sound
-            const waveOsc = audioCtx.createOscillator();
-            const waveGain = audioCtx.createGain();
-            const waveFilter = audioCtx.createBiquadFilter();
+            // Bass line
+            const bassNotes = [196, 196, 220, 220, 165, 165, 147, 147];
+            let bassIndex = 0;
             
-            waveOsc.type = 'sine';
-            waveOsc.frequency.value = 100;
-            waveFilter.type = 'lowpass';
-            waveFilter.frequency.value = 200;
-            waveGain.gain.value = 0.05;
+            function playBass() {
+                if (!musicPlaying) return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                
+                filter.type = 'lowpass';
+                filter.frequency.value = 300;
+                
+                osc.connect(filter);
+                filter.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.type = 'sine';
+                osc.frequency.value = bassNotes[bassIndex];
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.6);
+                
+                bassIndex = (bassIndex + 1) % bassNotes.length;
+                setTimeout(playBass, 600);
+            }
             
-            waveOsc.connect(waveFilter);
-            waveFilter.connect(waveGain);
-            waveGain.connect(audioCtx.destination);
+            // Drums (bongo style)
+            function playDrums() {
+                if (!musicPlaying) return;
+                
+                // Kick
+                const kick = audioCtx.createOscillator();
+                const kickGain = audioCtx.createGain();
+                kick.connect(kickGain);
+                kickGain.connect(masterGain);
+                kick.frequency.setValueAtTime(150, audioCtx.currentTime);
+                kick.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+                kickGain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+                kickGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                kick.start(audioCtx.currentTime);
+                kick.stop(audioCtx.currentTime + 0.1);
+                
+                // Hi sound (bongo high)
+                setTimeout(() => {
+                    if (!musicPlaying) return;
+                    const hi = audioCtx.createOscillator();
+                    const hiGain = audioCtx.createGain();
+                    hi.connect(hiGain);
+                    hiGain.connect(masterGain);
+                    hi.frequency.setValueAtTime(400, audioCtx.currentTime);
+                    hi.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.05);
+                    hiGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                    hiGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                    hi.start(audioCtx.currentTime);
+                    hi.stop(audioCtx.currentTime + 0.05);
+                }, 150);
+                
+                // Another hi
+                setTimeout(() => {
+                    if (!musicPlaying) return;
+                    const hi2 = audioCtx.createOscillator();
+                    const hi2Gain = audioCtx.createGain();
+                    hi2.connect(hi2Gain);
+                    hi2Gain.connect(masterGain);
+                    hi2.frequency.setValueAtTime(350, audioCtx.currentTime);
+                    hi2.frequency.exponentialRampToValueAtTime(180, audioCtx.currentTime + 0.05);
+                    hi2Gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                    hi2Gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+                    hi2.start(audioCtx.currentTime);
+                    hi2.stop(audioCtx.currentTime + 0.05);
+                }, 300);
+                
+                setTimeout(playDrums, 600);
+            }
             
-            // Modulate for wave effect
+            // Steel guitar (slide notes)
+            const steelNotes = [523, 587, 659, 587, 523, 494];
+            let steelIndex = 0;
+            
+            function playSteelGuitar() {
+                if (!musicPlaying) return;
+                
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const vibrato = audioCtx.createOscillator();
+                const vibratoGain = audioCtx.createGain();
+                
+                vibrato.frequency.value = 5;
+                vibratoGain.gain.value = 8;
+                vibrato.connect(vibratoGain);
+                vibratoGain.connect(osc.frequency);
+                
+                osc.connect(gain);
+                gain.connect(masterGain);
+                
+                osc.type = 'sine';
+                const targetNote = steelNotes[steelIndex];
+                osc.frequency.setValueAtTime(targetNote * 0.95, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(targetNote, audioCtx.currentTime + 0.2);
+                
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime + 0.8);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1.2);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 1.2);
+                vibrato.start(audioCtx.currentTime);
+                vibrato.stop(audioCtx.currentTime + 1.2);
+                
+                steelIndex = (steelIndex + 1) % steelNotes.length;
+                setTimeout(playSteelGuitar, 2400);
+            }
+            
+            // Ocean ambience
+            const noiseBuffer = audioCtx.createBuffer(1, audioCtx.sampleRate * 2, audioCtx.sampleRate);
+            const noiseData = noiseBuffer.getChannelData(0);
+            for (let i = 0; i < noiseData.length; i++) {
+                noiseData[i] = Math.random() * 2 - 1;
+            }
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = noiseBuffer;
+            noise.loop = true;
+            
+            const noiseFilter = audioCtx.createBiquadFilter();
+            noiseFilter.type = 'lowpass';
+            noiseFilter.frequency.value = 400;
+            
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0.05;
+            
+            noise.connect(noiseFilter);
+            noiseFilter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+            noise.start();
+            
+            // LFO for wave movement
             const lfo = audioCtx.createOscillator();
             const lfoGain = audioCtx.createGain();
-            lfo.frequency.value = 0.2;
-            lfoGain.gain.value = 50;
+            lfo.frequency.value = 0.15;
+            lfoGain.gain.value = 100;
             lfo.connect(lfoGain);
-            lfoGain.connect(waveOsc.frequency);
-            
-            waveOsc.start();
+            lfoGain.connect(noiseFilter.frequency);
             lfo.start();
             
             musicPlaying = true;
-            playNote();
+            playUkulele();
+            setTimeout(playBass, 100);
+            setTimeout(playDrums, 200);
+            setTimeout(playSteelGuitar, 1200);
         }
         
-        // Draw pixel
-        function drawPixel(x, y, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(Math.floor(x - cameraX), Math.floor(y), 1, 1);
+        function playCollectSound() {
+            if (!audioCtx) return;
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+            
+            osc.start(audioCtx.currentTime);
+            osc.stop(audioCtx.currentTime + 0.2);
         }
         
-        // Draw rect
-        function drawRect(x, y, w, h, color) {
-            ctx.fillStyle = color;
-            ctx.fillRect(Math.floor(x - cameraX), Math.floor(y), w, h);
+        function playWinSound() {
+            if (!audioCtx) return;
+            
+            const notes = [523, 659, 784, 1047];
+            notes.forEach((freq, i) => {
+                setTimeout(() => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.connect(gain);
+                    gain.connect(masterGain);
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                    osc.start(audioCtx.currentTime);
+                    osc.stop(audioCtx.currentTime + 0.4);
+                }, i * 150);
+            });
         }
         
-        // Draw character (pixel art style)
+        // Draw detailed pixel character
         function drawCharacter(char, isGroom) {
             const x = Math.floor(char.x - cameraX);
             const y = Math.floor(char.y);
             const f = char.facing;
+            const walkCycle = Math.floor(char.frame / 6) % 4;
             
             if (isGroom) {
-                // Blonde hair
-                ctx.fillStyle = COLORS.hair;
-                ctx.fillRect(x + 4, y, 8, 6);
-                ctx.fillRect(x + 3, y + 2, 10, 3);
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x + 2, y + 23, 12, 3);
                 
-                // Face
-                ctx.fillStyle = COLORS.skin;
-                ctx.fillRect(x + 4, y + 5, 8, 7);
+                // Blonde hair with highlights
+                ctx.fillStyle = '#E6C200';
+                ctx.fillRect(x + 4, y, 8, 3);
+                ctx.fillRect(x + 3, y + 1, 10, 4);
+                ctx.fillStyle = '#FFE135';
+                ctx.fillRect(x + 4, y + 1, 8, 3);
+                ctx.fillStyle = '#FFF176';
+                ctx.fillRect(x + 5, y + 1, 3, 2);
+                
+                // Ear
+                ctx.fillStyle = '#FFDAB9';
+                ctx.fillRect(x + (f > 0 ? 12 : 2), y + 6, 2, 3);
+                
+                // Face with more detail
+                ctx.fillStyle = '#FFDAB9';
+                ctx.fillRect(x + 4, y + 4, 8, 8);
                 
                 // Eyes
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 5, y + 6, 3, 3);
+                ctx.fillRect(x + 9, y + 6, 3, 3);
+                ctx.fillStyle = '#4A90D9';
+                ctx.fillRect(x + 6 + (f > 0 ? 1 : 0), y + 7, 2, 2);
+                ctx.fillRect(x + 10 + (f > 0 ? 1 : 0), y + 7, 2, 2);
                 ctx.fillStyle = '#000';
-                ctx.fillRect(x + 5 + (f > 0 ? 1 : 0), y + 7, 2, 2);
-                ctx.fillRect(x + 9 + (f > 0 ? 1 : 0), y + 7, 2, 2);
+                ctx.fillRect(x + 6 + (f > 0 ? 1 : 0), y + 7, 1, 1);
+                ctx.fillRect(x + 10 + (f > 0 ? 1 : 0), y + 7, 1, 1);
+                
+                // Eyebrows
+                ctx.fillStyle = '#B8960A';
+                ctx.fillRect(x + 5, y + 5, 3, 1);
+                ctx.fillRect(x + 9, y + 5, 3, 1);
+                
+                // Nose
+                ctx.fillStyle = '#E6BC9A';
+                ctx.fillRect(x + 7, y + 8, 2, 2);
                 
                 // Smile
-                ctx.fillRect(x + 6, y + 10, 4, 1);
-                
-                // Suit body
-                ctx.fillStyle = COLORS.suit;
-                ctx.fillRect(x + 3, y + 12, 10, 8);
-                
-                // White shirt
+                ctx.fillStyle = '#D4726A';
+                ctx.fillRect(x + 6, y + 11, 4, 1);
                 ctx.fillStyle = '#FFF';
-                ctx.fillRect(x + 6, y + 12, 4, 5);
+                ctx.fillRect(x + 7, y + 11, 2, 1);
                 
-                // Legs
-                ctx.fillStyle = COLORS.suit;
-                const legOffset = char.moving ? Math.sin(char.frame * 0.3) * 2 : 0;
-                ctx.fillRect(x + 4, y + 20, 3, 4 + legOffset);
-                ctx.fillRect(x + 9, y + 20, 3, 4 - legOffset);
+                // White shirt collar
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 5, y + 12, 6, 2);
+                
+                // Suit jacket
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(x + 3, y + 13, 10, 7);
+                ctx.fillStyle = '#2C3E50';
+                ctx.fillRect(x + 4, y + 13, 8, 6);
+                
+                // Lapels
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(x + 5, y + 13, 2, 4);
+                ctx.fillRect(x + 9, y + 13, 2, 4);
+                
+                // Boutonniere (flower)
+                ctx.fillStyle = '#FF6B6B';
+                ctx.fillRect(x + 4, y + 14, 2, 2);
+                
+                // Tie
+                ctx.fillStyle = '#FF6B6B';
+                ctx.fillRect(x + 7, y + 12, 2, 6);
+                
+                // Belt
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(x + 4, y + 19, 8, 1);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(x + 7, y + 19, 2, 1);
+                
+                // Pants
+                ctx.fillStyle = '#2C3E50';
+                const legOffset = char.moving ? (walkCycle === 1 || walkCycle === 3 ? 1 : 0) : 0;
+                ctx.fillRect(x + 4, y + 20, 3, 4 + (walkCycle === 1 ? 1 : 0));
+                ctx.fillRect(x + 9, y + 20, 3, 4 + (walkCycle === 3 ? 1 : 0));
+                
+                // Shoes
+                ctx.fillStyle = '#1a1a2e';
+                ctx.fillRect(x + 3, y + 23 + (walkCycle === 1 ? 1 : 0), 4, 2);
+                ctx.fillRect(x + 9, y + 23 + (walkCycle === 3 ? 1 : 0), 4, 2);
                 
             } else {
-                // Dark hair with veil
-                ctx.fillStyle = COLORS.hairDark;
-                ctx.fillRect(x + 3, y - 2, 10, 8);
-                ctx.fillRect(x + 2, y + 2, 12, 4);
+                // Shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillRect(x + 1, y + 23, 14, 3);
                 
-                // Veil
-                ctx.fillStyle = COLORS.veil;
-                ctx.fillRect(x + 1, y - 4, 14, 4);
-                ctx.fillRect(x - 2, y, 4, 16);
-                ctx.fillRect(x + 14, y, 4, 16);
+                // Veil (flowing behind)
+                ctx.fillStyle = 'rgba(255,255,255,0.7)';
+                ctx.fillRect(x - 4, y - 6, 24, 8);
+                ctx.fillRect(x - 6, y + 2, 6, 18);
+                ctx.fillRect(x + 16, y + 2, 6, 18);
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.fillRect(x - 8, y + 8, 4, 14);
+                ctx.fillRect(x + 20, y + 8, 4, 14);
+                
+                // Dark hair with highlights
+                ctx.fillStyle = '#2C1810';
+                ctx.fillRect(x + 3, y - 1, 10, 6);
+                ctx.fillRect(x + 2, y + 2, 12, 4);
+                ctx.fillStyle = '#3D2314';
+                ctx.fillRect(x + 4, y, 8, 4);
+                ctx.fillStyle = '#4A2C1A';
+                ctx.fillRect(x + 5, y + 1, 2, 2);
+                
+                // Hair flower
+                ctx.fillStyle = '#FF69B4';
+                ctx.fillRect(x + 11, y, 3, 3);
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(x + 12, y + 1, 1, 1);
+                
+                // Ear
+                ctx.fillStyle = '#FFDAB9';
+                ctx.fillRect(x + (f > 0 ? 12 : 2), y + 5, 2, 3);
+                
+                // Earring
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(x + (f > 0 ? 13 : 2), y + 7, 1, 2);
                 
                 // Face
-                ctx.fillStyle = COLORS.skin;
-                ctx.fillRect(x + 4, y + 5, 8, 7);
+                ctx.fillStyle = '#FFDAB9';
+                ctx.fillRect(x + 4, y + 4, 8, 8);
                 
-                // Eyes
+                // Eyes with lashes
                 ctx.fillStyle = '#000';
-                ctx.fillRect(x + 5, y + 7, 2, 2);
-                ctx.fillRect(x + 9, y + 7, 2, 2);
+                ctx.fillRect(x + 5, y + 5, 3, 1);
+                ctx.fillRect(x + 9, y + 5, 3, 1);
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 5, y + 6, 3, 3);
+                ctx.fillRect(x + 9, y + 6, 3, 3);
+                ctx.fillStyle = '#4A6741';
+                ctx.fillRect(x + 6, y + 7, 2, 2);
+                ctx.fillRect(x + 10, y + 7, 2, 2);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(x + 6, y + 7, 1, 1);
+                ctx.fillRect(x + 10, y + 7, 1, 1);
                 
                 // Blush
                 ctx.fillStyle = '#FFB6C1';
-                ctx.fillRect(x + 3, y + 9, 2, 1);
-                ctx.fillRect(x + 11, y + 9, 2, 1);
+                ctx.fillRect(x + 4, y + 9, 2, 1);
+                ctx.fillRect(x + 10, y + 9, 2, 1);
                 
-                // Smile
-                ctx.fillStyle = '#000';
-                ctx.fillRect(x + 6, y + 10, 4, 1);
+                // Nose
+                ctx.fillStyle = '#E6BC9A';
+                ctx.fillRect(x + 7, y + 8, 2, 1);
                 
-                // White dress
-                ctx.fillStyle = COLORS.dress;
-                ctx.fillRect(x + 2, y + 12, 12, 10);
-                ctx.fillRect(x + 0, y + 18, 16, 6);
+                // Lips
+                ctx.fillStyle = '#E57373';
+                ctx.fillRect(x + 6, y + 10, 4, 2);
+                ctx.fillStyle = '#EF9A9A';
+                ctx.fillRect(x + 7, y + 10, 2, 1);
                 
-                // Dress details
-                ctx.fillStyle = '#EEE';
-                ctx.fillRect(x + 4, y + 14, 2, 6);
-                ctx.fillRect(x + 10, y + 14, 2, 6);
+                // Neck
+                ctx.fillStyle = '#FFDAB9';
+                ctx.fillRect(x + 6, y + 12, 4, 2);
+                
+                // Necklace
+                ctx.fillStyle = '#FFD700';
+                ctx.fillRect(x + 5, y + 12, 6, 1);
+                ctx.fillRect(x + 7, y + 13, 2, 1);
+                
+                // Wedding dress bodice
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 3, y + 13, 10, 5);
+                ctx.fillStyle = '#F5F5F5';
+                ctx.fillRect(x + 4, y + 14, 2, 3);
+                ctx.fillRect(x + 10, y + 14, 2, 3);
+                
+                // Dress lace detail
+                ctx.fillStyle = '#E8E8E8';
+                ctx.fillRect(x + 5, y + 13, 1, 1);
+                ctx.fillRect(x + 7, y + 14, 2, 1);
+                ctx.fillRect(x + 10, y + 13, 1, 1);
+                
+                // Belt/sash
+                ctx.fillStyle = '#FFB6C1';
+                ctx.fillRect(x + 3, y + 17, 10, 1);
+                
+                // Dress skirt (flowing)
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + 1, y + 18, 14, 6);
+                ctx.fillRect(x - 1, y + 20, 18, 4);
+                
+                // Dress folds
+                ctx.fillStyle = '#F0F0F0';
+                ctx.fillRect(x + 2, y + 19, 2, 5);
+                ctx.fillRect(x + 7, y + 18, 2, 6);
+                ctx.fillRect(x + 12, y + 19, 2, 5);
+                
+                // Dress hem detail
+                ctx.fillStyle = '#E8E8E8';
+                ctx.fillRect(x, y + 23, 16, 1);
+                
+                // Bouquet
+                ctx.fillStyle = '#228B22';
+                ctx.fillRect(x + (f > 0 ? 0 : 12), y + 16, 4, 5);
+                ctx.fillStyle = '#FF69B4';
+                ctx.fillRect(x + (f > 0 ? 0 : 12), y + 14, 3, 3);
+                ctx.fillStyle = '#FF6B6B';
+                ctx.fillRect(x + (f > 0 ? 2 : 14), y + 15, 2, 2);
+                ctx.fillStyle = '#FFF';
+                ctx.fillRect(x + (f > 0 ? 1 : 13), y + 14, 2, 2);
             }
+        }
+        
+        // Draw banana
+        function drawBanana(x, y) {
+            const bx = Math.floor(x - cameraX);
+            const by = Math.floor(y);
+            
+            // Banana body
+            ctx.fillStyle = '#FFE135';
+            ctx.fillRect(bx, by + 2, 8, 4);
+            ctx.fillRect(bx + 1, by + 1, 6, 6);
+            ctx.fillRect(bx + 2, by, 4, 8);
+            
+            // Darker edge
+            ctx.fillStyle = '#E6C200';
+            ctx.fillRect(bx, by + 4, 2, 2);
+            ctx.fillRect(bx + 6, by + 4, 2, 2);
+            
+            // Stem
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(bx + 3, by - 2, 2, 3);
+            
+            // Highlight
+            ctx.fillStyle = '#FFF176';
+            ctx.fillRect(bx + 2, by + 2, 3, 2);
         }
         
         // Draw shark
@@ -393,30 +826,42 @@
             const sx = Math.floor(x - cameraX);
             const sy = Math.floor(y);
             
-            ctx.fillStyle = '#708090';
             // Body
-            ctx.fillRect(sx, sy, 20, 8);
-            ctx.fillRect(sx + 2, sy - 2, 16, 4);
-            ctx.fillRect(sx + 4, sy + 6, 12, 4);
+            ctx.fillStyle = '#5D6D7E';
+            ctx.fillRect(sx, sy, 24, 10);
+            ctx.fillRect(sx + 2, sy - 2, 18, 4);
+            ctx.fillRect(sx + 4, sy + 8, 14, 4);
             
-            // Fin
-            ctx.fillRect(sx + 8, sy - 8, 4, 8);
-            ctx.fillRect(sx + 9, sy - 10, 2, 4);
+            // Lighter belly
+            ctx.fillStyle = '#AEB6BF';
+            ctx.fillRect(sx + 4, sy + 6, 14, 4);
+            
+            // Dorsal fin
+            ctx.fillStyle = '#4A5568';
+            ctx.fillRect(sx + 10, sy - 10, 4, 10);
+            ctx.fillRect(sx + 11, sy - 12, 2, 4);
             
             // Tail
-            ctx.fillRect(sx - 4, sy + 2, 6, 4);
-            ctx.fillRect(sx - 6, sy, 4, 8);
+            ctx.fillStyle = '#5D6D7E';
+            ctx.fillRect(sx - 6, sy + 2, 8, 6);
+            ctx.fillRect(sx - 10, sy - 2, 6, 6);
+            ctx.fillRect(sx - 10, sy + 6, 6, 6);
             
             // Eye
             ctx.fillStyle = '#FFF';
-            ctx.fillRect(sx + 16, sy + 1, 3, 3);
+            ctx.fillRect(sx + 18, sy + 2, 4, 4);
             ctx.fillStyle = '#000';
-            ctx.fillRect(sx + 17, sy + 2, 2, 2);
+            ctx.fillRect(sx + 20, sy + 3, 2, 2);
+            
+            // Gills
+            ctx.fillStyle = '#4A5568';
+            ctx.fillRect(sx + 14, sy + 2, 1, 4);
+            ctx.fillRect(sx + 16, sy + 2, 1, 4);
             
             // Teeth
             ctx.fillStyle = '#FFF';
-            ctx.fillRect(sx + 18, sy + 5, 1, 2);
-            ctx.fillRect(sx + 20, sy + 5, 1, 2);
+            ctx.fillRect(sx + 22, sy + 6, 2, 2);
+            ctx.fillRect(sx + 20, sy + 7, 2, 2);
         }
         
         // Draw whale
@@ -424,32 +869,40 @@
             const wx = Math.floor(x - cameraX);
             const wy = Math.floor(y);
             
-            ctx.fillStyle = '#4169E1';
             // Body
-            ctx.fillRect(wx, wy, 30, 12);
-            ctx.fillRect(wx + 4, wy - 3, 22, 6);
-            ctx.fillRect(wx + 4, wy + 10, 22, 4);
+            ctx.fillStyle = '#2E4057';
+            ctx.fillRect(wx, wy, 34, 14);
+            ctx.fillRect(wx + 4, wy - 4, 24, 6);
+            ctx.fillRect(wx + 4, wy + 12, 24, 4);
             
-            // Belly
-            ctx.fillStyle = '#ADD8E6';
-            ctx.fillRect(wx + 6, wy + 8, 18, 4);
+            // Lighter belly
+            ctx.fillStyle = '#8DA9C4';
+            ctx.fillRect(wx + 6, wy + 10, 20, 6);
+            ctx.fillStyle = '#A8C5DB';
+            ctx.fillRect(wx + 8, wy + 12, 16, 3);
             
             // Tail
-            ctx.fillStyle = '#4169E1';
-            ctx.fillRect(wx - 8, wy + 2, 10, 8);
-            ctx.fillRect(wx - 14, wy - 2, 8, 6);
-            ctx.fillRect(wx - 14, wy + 8, 8, 6);
+            ctx.fillStyle = '#2E4057';
+            ctx.fillRect(wx - 10, wy + 4, 12, 8);
+            ctx.fillRect(wx - 16, wy - 2, 8, 8);
+            ctx.fillRect(wx - 16, wy + 10, 8, 8);
             
             // Eye
             ctx.fillStyle = '#FFF';
-            ctx.fillRect(wx + 24, wy + 2, 4, 4);
+            ctx.fillRect(wx + 26, wy + 2, 5, 5);
             ctx.fillStyle = '#000';
-            ctx.fillRect(wx + 25, wy + 3, 2, 2);
+            ctx.fillRect(wx + 28, wy + 4, 2, 2);
             
             // Spout
             ctx.fillStyle = '#87CEEB';
-            ctx.fillRect(wx + 12, wy - 10, 2, 8);
-            ctx.fillRect(wx + 8, wy - 14, 10, 4);
+            ctx.fillRect(wx + 14, wy - 14, 3, 12);
+            ctx.fillRect(wx + 10, wy - 18, 11, 5);
+            ctx.fillStyle = '#B0E0E6';
+            ctx.fillRect(wx + 12, wy - 16, 7, 3);
+            
+            // Fin
+            ctx.fillStyle = '#2E4057';
+            ctx.fillRect(wx + 6, wy - 6, 6, 4);
         }
         
         // Draw palm tree
@@ -457,88 +910,137 @@
             const px = Math.floor(x - cameraX);
             
             // Trunk
-            ctx.fillStyle = COLORS.palmTrunk;
-            ctx.fillRect(px + 6, y, 4, 40);
-            ctx.fillRect(px + 5, y + 10, 6, 4);
-            ctx.fillRect(px + 5, y + 20, 6, 4);
-            ctx.fillRect(px + 5, y + 30, 6, 4);
+            ctx.fillStyle = '#8B4513';
+            ctx.fillRect(px + 6, y, 5, 45);
+            
+            // Trunk texture
+            ctx.fillStyle = '#6B3510';
+            for (let i = 0; i < 8; i++) {
+                ctx.fillRect(px + 5, y + 5 + i * 5, 7, 2);
+            }
+            
+            // Trunk highlight
+            ctx.fillStyle = '#A0522D';
+            ctx.fillRect(px + 8, y, 2, 45);
+            
+            // Coconuts
+            ctx.fillStyle = '#5D4037';
+            ctx.fillRect(px + 4, y - 2, 4, 4);
+            ctx.fillRect(px + 9, y - 1, 4, 4);
+            ctx.fillRect(px + 6, y + 1, 3, 3);
             
             // Leaves
-            ctx.fillStyle = COLORS.palm;
+            const leafColor = '#228B22';
+            const leafLight = '#32CD32';
+            const leafDark = '#006400';
+            
             // Left leaves
-            ctx.fillRect(px - 15, y - 5, 20, 4);
-            ctx.fillRect(px - 20, y - 2, 15, 3);
-            ctx.fillRect(px - 18, y + 2, 12, 3);
+            ctx.fillStyle = leafColor;
+            ctx.fillRect(px - 20, y - 8, 25, 5);
+            ctx.fillRect(px - 25, y - 5, 20, 4);
+            ctx.fillRect(px - 22, y, 18, 4);
+            ctx.fillStyle = leafLight;
+            ctx.fillRect(px - 18, y - 7, 15, 2);
+            ctx.fillStyle = leafDark;
+            ctx.fillRect(px - 20, y - 4, 20, 1);
             
             // Right leaves
-            ctx.fillRect(px + 10, y - 5, 20, 4);
-            ctx.fillRect(px + 15, y - 2, 20, 3);
-            ctx.fillRect(px + 18, y + 2, 15, 3);
+            ctx.fillStyle = leafColor;
+            ctx.fillRect(px + 10, y - 8, 25, 5);
+            ctx.fillRect(px + 15, y - 5, 25, 4);
+            ctx.fillRect(px + 18, y, 20, 4);
+            ctx.fillStyle = leafLight;
+            ctx.fillRect(px + 15, y - 7, 15, 2);
+            ctx.fillStyle = leafDark;
+            ctx.fillRect(px + 12, y - 4, 20, 1);
             
             // Top leaves
-            ctx.fillRect(px + 2, y - 12, 12, 4);
-            ctx.fillRect(px, y - 8, 16, 4);
+            ctx.fillStyle = leafColor;
+            ctx.fillRect(px + 2, y - 16, 14, 5);
+            ctx.fillRect(px, y - 12, 18, 5);
+            ctx.fillStyle = leafLight;
+            ctx.fillRect(px + 4, y - 14, 10, 2);
         }
         
         // Draw volcano
         function drawVolcano() {
-            const vx = WORLD_WIDTH - 120 - cameraX;
+            const vx = WORLD_WIDTH - 140 - cameraX;
             
-            // Mountain
-            ctx.fillStyle = COLORS.volcano;
+            // Mountain base
+            ctx.fillStyle = '#3D3D3D';
             ctx.beginPath();
-            ctx.moveTo(vx, 180);
-            ctx.lineTo(vx + 60, 40);
-            ctx.lineTo(vx + 120, 180);
+            ctx.moveTo(vx - 20, 200);
+            ctx.lineTo(vx + 70, 30);
+            ctx.lineTo(vx + 160, 200);
             ctx.fill();
             
-            // Lighter side
-            ctx.fillStyle = COLORS.volcanoLight;
+            // Mountain detail
+            ctx.fillStyle = '#4A4A4A';
             ctx.beginPath();
-            ctx.moveTo(vx + 60, 40);
-            ctx.lineTo(vx + 120, 180);
-            ctx.lineTo(vx + 80, 180);
-            ctx.lineTo(vx + 60, 80);
+            ctx.moveTo(vx + 70, 30);
+            ctx.lineTo(vx + 160, 200);
+            ctx.lineTo(vx + 100, 200);
+            ctx.lineTo(vx + 70, 80);
+            ctx.fill();
+            
+            // Snow/ash cap
+            ctx.fillStyle = '#696969';
+            ctx.beginPath();
+            ctx.moveTo(vx + 50, 60);
+            ctx.lineTo(vx + 70, 30);
+            ctx.lineTo(vx + 90, 60);
             ctx.fill();
             
             // Crater
             ctx.fillStyle = '#2C2C2C';
-            ctx.fillRect(vx + 45, 40, 30, 15);
+            ctx.fillRect(vx + 55, 30, 30, 20);
             
             // Lava glow
-            ctx.fillStyle = COLORS.lavaGlow;
-            ctx.fillRect(vx + 48, 42, 24, 10);
+            ctx.fillStyle = '#FF6347';
+            ctx.fillRect(vx + 58, 32, 24, 15);
             
-            // Lava in crater
-            ctx.fillStyle = COLORS.lava;
-            ctx.fillRect(vx + 50, 45, 20, 8);
+            // Lava
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(vx + 60, 35, 20, 12);
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(vx + 65, 38, 10, 6);
             
             // Lava streams
-            ctx.fillStyle = COLORS.lava;
-            ctx.fillRect(vx + 55, 52, 4, 30);
-            ctx.fillRect(vx + 62, 52, 3, 45);
-            ctx.fillRect(vx + 68, 52, 4, 25);
+            ctx.fillStyle = '#FF4500';
+            ctx.fillRect(vx + 62, 47, 5, 50);
+            ctx.fillRect(vx + 72, 47, 4, 70);
+            ctx.fillRect(vx + 80, 47, 5, 40);
             
-            ctx.fillStyle = COLORS.lavaGlow;
-            ctx.fillRect(vx + 56, 52, 2, 30);
-            ctx.fillRect(vx + 63, 52, 1, 45);
-            ctx.fillRect(vx + 69, 52, 2, 25);
+            ctx.fillStyle = '#FF6347';
+            ctx.fillRect(vx + 63, 47, 3, 50);
+            ctx.fillRect(vx + 73, 47, 2, 70);
+            ctx.fillRect(vx + 81, 47, 3, 40);
+            
+            ctx.fillStyle = '#FFD700';
+            ctx.fillRect(vx + 64, 50, 1, 40);
+            ctx.fillRect(vx + 74, 50, 1, 60);
         }
         
-        // Add lava particle
+        // Spawn lava particle
         function spawnLavaParticle() {
-            if (Math.random() > 0.1) return;
+            if (Math.random() > 0.15) return;
             lavaParticles.push({
-                x: WORLD_WIDTH - 60 + Math.random() * 20,
-                y: 45,
-                vx: (Math.random() - 0.5) * 2,
-                vy: -Math.random() * 3 - 1,
-                life: 60
+                x: WORLD_WIDTH - 70 + Math.random() * 20,
+                y: 35,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 4 - 2,
+                life: 80,
+                size: 2 + Math.random() * 2
             });
         }
         
+        // Input
+        const keys = { left: false, right: false, up: false, down: false };
+        
         // Update
         function update() {
+            if (!gameRunning || gameWon) return;
+            
             // Move player
             player.moving = false;
             
@@ -567,36 +1069,58 @@
             
             // Camera follow
             const targetCam = player.x - GAME_WIDTH / 2 + player.width / 2;
-            cameraX = Math.max(0, Math.min(WORLD_WIDTH - GAME_WIDTH, targetCam));
+            cameraX += (Math.max(0, Math.min(WORLD_WIDTH - GAME_WIDTH, targetCam)) - cameraX) * 0.1;
             
             // Bride follows player
-            const dx = player.x - 30 - bride.x;
+            const dx = player.x - 35 - bride.x;
             const dy = player.y - bride.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
-            if (dist > 5) {
-                bride.x += (dx / dist) * 1.5;
-                bride.y += (dy / dist) * 1.5;
+            if (dist > 8) {
+                bride.x += (dx / dist) * 2;
+                bride.y += (dy / dist) * 2;
                 bride.facing = dx > 0 ? 1 : -1;
                 bride.frame++;
             }
+            
+            // Check banana collection
+            bananas.forEach(b => {
+                if (!b.collected) {
+                    const bdx = player.x + 8 - b.x;
+                    const bdy = player.y + 12 - b.y;
+                    if (Math.sqrt(bdx * bdx + bdy * bdy) < 18) {
+                        b.collected = true;
+                        bananaScore++;
+                        document.getElementById('bananaCount').textContent = `🍌 ${bananaScore} / 10`;
+                        playCollectSound();
+                        
+                        if (bananaScore >= 10) {
+                            gameWon = true;
+                            playWinSound();
+                            setTimeout(() => {
+                                document.getElementById('winScreen').style.display = 'flex';
+                            }, 500);
+                        }
+                    }
+                }
+            });
             
             // Update creatures
             creatures.forEach(c => {
                 c.timer--;
                 if (c.timer <= 0 && !c.jumping) {
                     c.jumping = true;
-                    c.jumpSpeed = -4 - Math.random() * 2;
+                    c.jumpSpeed = -5 - Math.random() * 3;
                 }
                 
                 if (c.jumping) {
                     c.jumpHeight += c.jumpSpeed;
-                    c.jumpSpeed += 0.15;
+                    c.jumpSpeed += 0.2;
                     
                     if (c.jumpHeight >= 0) {
                         c.jumpHeight = 0;
                         c.jumping = false;
-                        c.timer = 100 + Math.random() * 200;
+                        c.timer = 80 + Math.random() * 180;
                     }
                 }
             });
@@ -606,7 +1130,7 @@
             lavaParticles.forEach((p, i) => {
                 p.x += p.vx;
                 p.y += p.vy;
-                p.vy += 0.1;
+                p.vy += 0.12;
                 p.life--;
                 if (p.life <= 0) {
                     lavaParticles.splice(i, 1);
@@ -616,21 +1140,32 @@
         
         // Draw
         function draw() {
-            // Sky gradient
+            // Sky gradient (sunset)
             const gradient = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-            gradient.addColorStop(0, COLORS.sky);
-            gradient.addColorStop(0.6, COLORS.skyGradient);
+            gradient.addColorStop(0, '#87CEEB');
+            gradient.addColorStop(0.3, '#FFB347');
+            gradient.addColorStop(0.6, '#FF7F50');
+            gradient.addColorStop(1, '#FF6B6B');
             ctx.fillStyle = gradient;
             ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            
+            // Clouds
+            ctx.fillStyle = 'rgba(255,255,255,0.8)';
+            ctx.fillRect(50 - cameraX * 0.2, 30, 40, 15);
+            ctx.fillRect(45 - cameraX * 0.2, 35, 50, 12);
+            ctx.fillRect(150 - cameraX * 0.2, 45, 35, 12);
+            ctx.fillRect(145 - cameraX * 0.2, 50, 45, 10);
+            ctx.fillRect(280 - cameraX * 0.2, 25, 50, 15);
+            ctx.fillRect(275 - cameraX * 0.2, 32, 60, 12);
             
             // Sun
             ctx.fillStyle = '#FFD700';
             ctx.beginPath();
-            ctx.arc(GAME_WIDTH - 50, 40, 25, 0, Math.PI * 2);
+            ctx.arc(GAME_WIDTH - 40 + cameraX * 0.1, 50, 30, 0, Math.PI * 2);
             ctx.fill();
             ctx.fillStyle = '#FFF8DC';
             ctx.beginPath();
-            ctx.arc(GAME_WIDTH - 50, 40, 20, 0, Math.PI * 2);
+            ctx.arc(GAME_WIDTH - 40 + cameraX * 0.1, 50, 24, 0, Math.PI * 2);
             ctx.fill();
             
             // Volcano (background)
@@ -638,56 +1173,95 @@
             
             // Lava particles
             lavaParticles.forEach(p => {
-                ctx.fillStyle = Math.random() > 0.5 ? COLORS.lava : COLORS.lavaGlow;
-                ctx.fillRect(Math.floor(p.x - cameraX), Math.floor(p.y), 3, 3);
+                const colors = ['#FF4500', '#FF6347', '#FFD700', '#FF8C00'];
+                ctx.fillStyle = colors[Math.floor(Math.random() * colors.length)];
+                ctx.fillRect(Math.floor(p.x - cameraX), Math.floor(p.y), p.size, p.size);
             });
             
-            // Ocean
-            ctx.fillStyle = COLORS.ocean;
+            // Ocean background
+            ctx.fillStyle = '#1E90FF';
             ctx.fillRect(0, 195, GAME_WIDTH, 50);
             
             // Ocean waves
-            for (let i = 0; i < GAME_WIDTH; i += 8) {
-                const waveY = 195 + Math.sin((i + Date.now() * 0.002) * 0.1) * 3;
-                ctx.fillStyle = COLORS.oceanDeep;
-                ctx.fillRect(i, waveY + 5, 8, 40);
+            for (let i = 0; i < GAME_WIDTH + 20; i += 12) {
+                const waveY = 195 + Math.sin((i + cameraX + Date.now() * 0.002) * 0.08) * 4;
+                ctx.fillStyle = '#0066CC';
+                ctx.fillRect(i, waveY + 6, 12, 44);
+                ctx.fillStyle = '#1E90FF';
+                ctx.fillRect(i, waveY, 12, 8);
+                ctx.fillStyle = '#87CEEB';
+                ctx.fillRect(i + 2, waveY + 2, 6, 2);
             }
             
             // Draw creatures
             creatures.forEach(c => {
-                const drawY = 200 + c.jumpHeight;
-                if (c.type === 'shark') {
-                    drawShark(c.x, drawY);
-                } else {
-                    drawWhale(c.x, drawY - 5);
+                const drawY = 195 + c.jumpHeight;
+                if (drawY < 195) {
+                    if (c.type === 'shark') {
+                        drawShark(c.x, drawY);
+                    } else {
+                        drawWhale(c.x, drawY - 8);
+                    }
                 }
             });
             
             // Beach/sand
-            ctx.fillStyle = COLORS.sand;
+            ctx.fillStyle = '#F4D03F';
             ctx.fillRect(0, 180, GAME_WIDTH, 20);
             
+            // Sand gradient
+            ctx.fillStyle = '#E5BE36';
+            ctx.fillRect(0, 190, GAME_WIDTH, 10);
+            
             // Sand texture
-            ctx.fillStyle = COLORS.sandDark;
-            for (let i = 0; i < GAME_WIDTH; i += 12) {
-                ctx.fillRect(i + ((cameraX * 0.5) % 12), 185, 4, 2);
-                ctx.fillRect(i + 6 + ((cameraX * 0.5) % 12), 190, 3, 2);
+            ctx.fillStyle = '#D4AC0D';
+            for (let i = -20; i < GAME_WIDTH + 20; i += 15) {
+                const offset = (cameraX * 0.8) % 15;
+                ctx.fillRect(i - offset, 183, 5, 2);
+                ctx.fillRect(i + 7 - offset, 188, 4, 2);
+                ctx.fillRect(i + 3 - offset, 193, 3, 2);
             }
             
+            // Shells and starfish
+            ctx.fillStyle = '#FFE4E1';
+            ctx.fillRect(80 - cameraX, 186, 4, 3);
+            ctx.fillStyle = '#FF6B6B';
+            ctx.fillRect(200 - cameraX, 191, 5, 5);
+            ctx.fillRect(198 - cameraX, 193, 9, 1);
+            ctx.fillRect(202 - cameraX, 189, 1, 7);
+            ctx.fillStyle = '#FFE4E1';
+            ctx.fillRect(350 - cameraX, 184, 5, 4);
+            
             // Palm trees
-            drawPalm(50, 140);
-            drawPalm(200, 145);
-            drawPalm(350, 140);
+            drawPalm(40, 135);
+            drawPalm(180, 138);
+            drawPalm(320, 133);
+            drawPalm(480, 136);
+            
+            // Draw bananas
+            bananas.forEach(b => {
+                if (!b.collected) {
+                    const bobY = Math.sin(Date.now() * 0.005 + b.bobOffset) * 3;
+                    drawBanana(b.x, b.y + bobY);
+                }
+            });
             
             // Characters
             drawCharacter(bride, false);
             drawCharacter(player, true);
             
-            // Hearts floating
-            const heartY = 120 + Math.sin(Date.now() * 0.003) * 5;
-            ctx.fillStyle = '#FF69B4';
-            ctx.font = '12px sans-serif';
-            ctx.fillText('❤️', player.x - cameraX + 3, heartY);
+            // Floating hearts between characters
+            if (!gameWon) {
+                const heartX = (player.x + bride.x) / 2 - cameraX + 8;
+                const heartY = Math.min(player.y, bride.y) - 15 + Math.sin(Date.now() * 0.004) * 4;
+                ctx.fillStyle = '#FF69B4';
+                ctx.fillRect(heartX, heartY, 3, 2);
+                ctx.fillRect(heartX + 4, heartY, 3, 2);
+                ctx.fillRect(heartX - 1, heartY + 2, 9, 2);
+                ctx.fillRect(heartX, heartY + 4, 7, 2);
+                ctx.fillRect(heartX + 1, heartY + 6, 5, 2);
+                ctx.fillRect(heartX + 2, heartY + 8, 3, 1);
+            }
         }
         
         // Game loop
@@ -703,6 +1277,7 @@
             if (e.key === 'ArrowRight' || e.key === 'd') keys.right = true;
             if (e.key === 'ArrowUp' || e.key === 'w') keys.up = true;
             if (e.key === 'ArrowDown' || e.key === 's') keys.down = true;
+            e.preventDefault();
         });
         
         document.addEventListener('keyup', (e) => {
@@ -723,6 +1298,9 @@
                 e.preventDefault();
                 keys[key] = false;
             });
+            btn.addEventListener('touchcancel', (e) => {
+                keys[key] = false;
+            });
             btn.addEventListener('mousedown', () => keys[key] = true);
             btn.addEventListener('mouseup', () => keys[key] = false);
             btn.addEventListener('mouseleave', () => keys[key] = false);
@@ -733,13 +1311,43 @@
         setupTouchButton('leftBtn', 'left');
         setupTouchButton('rightBtn', 'right');
         
+        // Prevent scrolling
+        document.body.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+        
         // Start game
-        document.getElementById('startBtn').addEventListener('click', () => {
+        function startGame() {
             document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('winScreen').style.display = 'none';
             document.getElementById('controls').style.display = 'flex';
-            createHawaiianMusic();
-            gameLoop();
-        });
+            document.getElementById('hud').style.display = 'flex';
+            
+            // Reset game
+            player.x = 100;
+            player.y = 160;
+            bride.x = 70;
+            bride.y = 160;
+            bananaScore = 0;
+            gameWon = false;
+            cameraX = 0;
+            document.getElementById('bananaCount').textContent = '🍌 0 / 10';
+            
+            spawnBananas();
+            spawnCreatures();
+            
+            if (!musicPlaying) {
+                createHawaiianMusic();
+            }
+            
+            gameRunning = true;
+        }
+        
+        document.getElementById('startBtn').addEventListener('click', startGame);
+        document.getElementById('restartBtn').addEventListener('click', startGame);
+        
+        // Initial draw
+        spawnBananas();
+        spawnCreatures();
+        gameLoop();
     </script>
 </body>
 </html>
